@@ -1,8 +1,5 @@
-#pragma once
-class Date
-
-{
-
+#define _CRT_SECURE_NO_WARNINGS 1
+class Date{
 public:
 
 	// 获取某年某月的天数
