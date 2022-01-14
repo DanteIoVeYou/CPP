@@ -86,9 +86,6 @@ public:
 	// date minus date -> days intervals
 	int operator-(const Date& d);
 
-	// 流提取
-	ostream& operator<<(ostream& out);
-	// 流插入
 private:
 	int _year;
 	int _month;

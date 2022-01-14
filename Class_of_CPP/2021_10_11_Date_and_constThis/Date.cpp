@@ -162,12 +162,12 @@ int Date::operator-(const Date& d) {
 	return i * flag;
 }
 
-// 流提取
+// 流插入
 ostream& operator<<(ostream& out, const Date& d) {
 	out << d._year << "/" << d._month << "/" << d._day;
 	return out;
 }
-// 流插入
+ //流提取
 istream& operator>>(istream& in, Date& d) {
 	in >> d._year;
 	in >> d._month;
