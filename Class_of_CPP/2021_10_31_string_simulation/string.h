@@ -25,7 +25,7 @@ namespace imdanteking {
 		size_t capacity() const {
 			return _capacity;
 		}
-		//重载swap
+		//swap
 		void swap(basic_string& str) {
 			::swap(_size, str._size);
 			::swap(_capacity, str._capacity);
@@ -65,8 +65,6 @@ namespace imdanteking {
 			: _str(nullptr)
 			{
 				if (this != &str) {
-					_size = str._size;
-					_capacity = str._capacity;
 					basic_string tmp(str._str);
 					swap(tmp);
 			}
@@ -86,7 +84,7 @@ namespace imdanteking {
 			return *this;
 		}
 
-		//统一增容函数
+		//增容函数
 
 		void reserve(int new_capacity) {
 			T* tmp = new T[new_capacity + 1];//多开的一个T的大小用来存'\0'
@@ -273,12 +271,38 @@ namespace imdanteking {
 			_size = strlen(_str);
 			return begin() + pos;
 		}
-
+		//substr
+		basic_string substr(size_t pos, size_t n = npos) {
+			assert(pos < _size);
+			basic_string tmp;
+			tmp.resize(_size);
+			if (pos + n >= _size || n == npos) {
+				strcpy(tmp._str, _str + pos);
+				_size -= pos + 1;
+			}
+			else {
+				strcpy(tmp._str, _str + pos);
+				*(tmp._str + n) = '\0';
+				_size = n;
+			}
+			return tmp;
+		}
+		//operator+
+		basic_string operator+(const basic_string& str) {
+			basic_string ret(*this);
+			ret += str._str;
+			return ret;
+		}
+		basic_string operator+(const T* s) {
+			basic_string ret(*this);
+			ret += s;
+			return ret;
+		}
 	private:
 		T* _str;
 		size_t _size;
 		size_t _capacity;
-		static const size_t npos;
+		static const size_t npos = -1;
 	};
 	ostream& operator<<(ostream& out, const basic_string<char>& str) {
 		for (size_t i = 0; i < str.size(); i++) {
@@ -306,6 +330,4 @@ namespace imdanteking {
 		}
 		return in;
 	}
-	const size_t basic_string<char>::npos = -1;
-
 }
