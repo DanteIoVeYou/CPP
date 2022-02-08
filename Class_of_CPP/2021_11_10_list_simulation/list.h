@@ -164,9 +164,11 @@ namespace imdanteking {
 		}
 		///Element Access//////////////////////////////////////////////////////////////////////////////////
 		const T& back() {
+			assert(!empty());
 			return _head->_prev->_data;
  		}
 		const T& front() {
+			assert(!empty());
 			return *begin();
 		}
 		///Modify//////////////////////////////////////////////////////////////////////////////////
@@ -186,7 +188,6 @@ namespace imdanteking {
 			_head->_prev = tail->_prev;
 			delete tail;
 			tail = nullptr;
-
 		}
 		void push_fornt(const T& val) {
 			Node* head = _head->_next;
@@ -246,9 +247,17 @@ namespace imdanteking {
 			erase(begin(), end());
 		}
 		void swap(list<T>& lt) {
-			if(lt != *this) {
+			if(_head != lt._head) {
 				std::swap(_head, lt._head);
 			}
+		}
+		void print() {
+			Node* cur = _head->_next;
+			while (cur != _head) {
+				cout << cur->_data << " ";
+				cur = cur->_next;
+			}
+			cout << endl;
 		}
 	private:
 		Node* _head;
@@ -281,6 +290,44 @@ namespace imdanteking {
 			cout << e << " ";
 		}
 		cout << endl;
+	}
+	/// //////////////////////////////////////////////////////////////////////////////////
+	void Test3() {
+		list<int> lt1;
+		lt1.push_back(88);
+		lt1.erase(lt1.begin());
+		lt1.erase(lt1.begin());
+
+	/*	lt1.push_back(99);
+		list<int>::iterator p = lt1.insert(lt1.begin(), 77);
+		cout << "p:" << *p << endl;
+		lt1.insert(lt1.end(), 66);
+		lt1.insert(lt1.begin()++, 55);
+		lt1.print();
+
+		list<int>::iterator u = lt1.erase(lt1.begin(), ++lt1.begin());
+		cout << "u:" << *u << endl;
+
+		lt1.print();
+
+		lt1.clear();
+		lt1.clear();
+		lt1.clear();
+
+		lt1.print();*/
+	/*	cout << lt1.back() << endl;
+		cout << lt1.front() << endl;
+		list<int> lt2(30, 5);
+		list<int> lt3(lt2.begin(), lt2.end());
+		list<int> lt4(lt3);
+		lt1 = lt2;
+		cout << lt1.size() << endl;
+		lt1.push_back(6);
+		cout << lt1.back() << endl;
+		lt2.clear();
+		cout << lt2.size() << endl;
+		cout << lt3.size() << endl;
+		cout << lt4.size() << endl;*/
 	}
 	
 }
