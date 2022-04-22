@@ -1,25 +1,24 @@
 #pragma once
-#include <iostream>
-#include <vector>
-#include <ctime>
-#define INIT_POOL_SIZE (1 << 13)
-#define INIT_POOL_PAGE 2
-//å®šé•¿å†…å­˜æ± 
-//1. ç”³è¯·çš„å¤§å—å†…å­˜
-//2. è‡ªç”±é“¾è¡¨å›æ”¶é‡Šæ”¾çš„å†…å­˜
+#pragma once
+
+#include "common.h"
+
+//¶¨³¤ÄÚ´æ³Ø
+//1. ÉêÇëµÄ´ó¿éÄÚ´æ
+//2. ×ÔÓÉÁ´±í»ØÊÕÊÍ·ÅµÄÄÚ´æ
 
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
-// ä»¥é¡µä¸ºå•ä½åˆ†é…
+// ÒÔÒ³Îªµ¥Î»·ÖÅä
 inline static void* SystemAlloc(size_t kpage)
 {
 #ifdef _WIN32
-    void* ptr = VirtualAlloc(0, (kpage << 13),MEM_COMMIT | MEM_RESERVE,
-                             PAGE_READWRITE);
+    void* ptr = VirtualAlloc(0, (kpage << 13), MEM_COMMIT | MEM_RESERVE,
+        PAGE_READWRITE);
 #else
-    // linuxä¸‹brk mmapç­‰
+    // linuxÏÂbrk mmapµÈ
 #endif
     if (ptr == nullptr)
         throw std::bad_alloc();
@@ -30,74 +29,74 @@ inline static void* SystemAlloc(size_t kpage)
 template<class T>
 class ObjectPool {
 public:
-    ObjectPool(): _memory(nullptr), _free_list(nullptr), _remain_size(0) {}
+    ObjectPool() : _memory(nullptr), _free_list(nullptr), _remain_size(0) {}
     ~ObjectPool() {}
     T* New() {
-        // åˆå§‹åŒ–
+        // ³õÊ¼»¯
         T* obj = nullptr;
-        // ä¼˜å…ˆä»è‡ªç”±é“¾è¡¨å–å†…å­˜å—
-        if(_free_list) {
+        // ÓÅÏÈ´Ó×ÔÓÉÁ´±íÈ¡ÄÚ´æ¿é
+        if (_free_list) {
             void* next = *((void**)_free_list);
             obj = (T*)_free_list;
             _free_list = next;
         }
-        // è‡ªç”±é“¾è¡¨ä¸Šæ²¡æŒ‚å†…å­˜å—
+        // ×ÔÓÉÁ´±íÉÏÃ»¹ÒÄÚ´æ¿é
         else {
-            // å†…å­˜æ± æ²¡æœ‰åˆå§‹åŒ–æˆ–è€…å†…å­˜æ± å¤§å°ä¸å¤Ÿï¼Œå°±æ–°å¼€å¤§å—å†…å­˜
-            if(_remain_size < sizeof(T)) {
-//                 _memory = (char*)malloc(INIT_POOL_SIZE);
-                _memory = (char*)SystemAlloc(INIT_POOL_PAGE); // ç›´æ¥è°ƒç”¨ç³»ç»Ÿæ¥å£VirtualAlloc
+            // ÄÚ´æ³ØÃ»ÓĞ³õÊ¼»¯»òÕßÄÚ´æ³Ø´óĞ¡²»¹»£¬¾ÍĞÂ¿ª´ó¿éÄÚ´æ
+            if (_remain_size < sizeof(T)) {
+                //                 _memory = (char*)malloc(INIT_POOL_SIZE);
+                _memory = (char*)SystemAlloc(INIT_POOL_PAGE); // Ö±½Óµ÷ÓÃÏµÍ³½Ó¿ÚVirtualAlloc
                 _remain_size = INIT_POOL_SIZE;
-                // mallocå¤±è´¥
-                if(!_memory) {
+                // mallocÊ§°Ü
+                if (!_memory) {
                     throw std::bad_alloc();
                 }
             }
-            // æœ‰å¤§å—å†…å­˜æ¥ä¾›ä½¿ç”¨
+            // ÓĞ´ó¿éÄÚ´æÀ´¹©Ê¹ÓÃ
 
-            // è‡³å°‘åœ¨32ä½ä¸‹å¼€4ä¸ªå­—èŠ‚ï¼Œåœ¨64ä½ä¸‹å¼€8ä¸ªå­—èŠ‚ï¼Œæ‰èƒ½å­˜çš„ä¸‹æŒ‡é’ˆ
-            size_t size = sizeof(T)<sizeof(void*)?sizeof(void*):sizeof(T);
+            // ÖÁÉÙÔÚ32Î»ÏÂ¿ª4¸ö×Ö½Ú£¬ÔÚ64Î»ÏÂ¿ª8¸ö×Ö½Ú£¬²ÅÄÜ´æµÄÏÂÖ¸Õë
+            size_t size = sizeof(T) < sizeof(void*) ? sizeof(void*) : sizeof(T);
             obj = (T*)_memory;
             _memory += size;
             _remain_size -= size;
         }
-        // placement-new å¯¹Tåˆå§‹åŒ–
+        // placement-new ¶ÔT³õÊ¼»¯
         new(obj)T;
         return obj;
     }
     void Delete(T* obj) {
-        // æ˜¾ç¤ºè°ƒç”¨ææ„å‡½æ•°æ¸…ç†
+        // ÏÔÊ¾µ÷ÓÃÎö¹¹º¯ÊıÇåÀí
         obj->~T();
-        // å°†ä¸€ä¸ªå†…å­˜å—å¤´æ’åˆ°è‡ªç”±é“¾è¡¨ä¸Š
+        // ½«Ò»¸öÄÚ´æ¿éÍ·²åµ½×ÔÓÉÁ´±íÉÏ
         *((void**)obj) = _free_list;
         _free_list = obj;
     }
 
 private:
-    size_t _remain_size; // å¤§å—å†…å­˜å‰©ä½™çš„å¤§å°
-    char* _memory; // å¤§å—å†…å­˜çš„èµ·å§‹åœ°å€
-    void* _free_list; // è‡ªç”±é“¾è¡¨å¤´èŠ‚ç‚¹çš„åœ°å€
+    size_t _remain_size; // ´ó¿éÄÚ´æÊ£ÓàµÄ´óĞ¡
+    char* _memory; // ´ó¿éÄÚ´æµÄÆğÊ¼µØÖ·
+    void* _free_list; // ×ÔÓÉÁ´±íÍ·½ÚµãµÄµØÖ·
 };
 
-struct TreeNode{
+struct TreeNode {
     int _val;
     TreeNode* _left;
     TreeNode* _right;
-    TreeNode(): _val(0), _left(nullptr), _right(nullptr) {}
-    ~TreeNode(){}
+    TreeNode() : _val(0), _left(nullptr), _right(nullptr) {}
+    ~TreeNode() {}
 };
 
 void Test1() {
     size_t cnt = 100000;
     std::vector<TreeNode*> v1;
-    v1.reserve(3*cnt);
+    v1.reserve(3 * cnt);
     size_t begin1 = clock();
-    for(int i = 0; i < 3; i++) {
-        for(int j = 0; j < cnt; j++) {
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < cnt; j++) {
             v1.push_back(new TreeNode);
         }
     }
-    for(int i = 0; i < v1.size(); i++) {
+    for (int i = 0; i < v1.size(); i++) {
         delete v1[i];
     }
     size_t end1 = clock();
@@ -105,15 +104,15 @@ void Test1() {
 
     std::vector<TreeNode*> v2;
 
-    v2.reserve(3*cnt);
+    v2.reserve(3 * cnt);
     ObjectPool<TreeNode> pool;
     size_t begin2 = clock();
-    for(int i = 0; i < 3; i++) {
-        for(int j = 0; j < cnt; j++) {
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < cnt; j++) {
             v2.push_back(pool.New());
         }
     }
-    for(int i = 0; i < v2.size(); i++) {
+    for (int i = 0; i < v2.size(); i++) {
         pool.Delete(v2[i]);
     }
     size_t end2 = clock();
@@ -121,9 +120,9 @@ void Test1() {
 }
 void TestObjectPool()
 {
-// ç”³è¯·é‡Šæ”¾çš„è½®æ¬¡
+    // ÉêÇëÊÍ·ÅµÄÂÖ´Î
     const size_t Rounds = 3;
-// æ¯è½®ç”³è¯·é‡Šæ”¾å¤šå°‘æ¬¡
+    // Ã¿ÂÖÉêÇëÊÍ·Å¶àÉÙ´Î
     const size_t N = 10000;
     size_t begin1 = clock();
     std::vector<TreeNode*> v1;
@@ -157,6 +156,6 @@ void TestObjectPool()
         v2.clear();
     }
     size_t end2 = clock();
-    std::cout <<"new cost time:" <<end1 - begin1 << std::endl;
-    std::cout <<"object pool cost time:" <<end2 - begin2 << std::endl;
+    std::cout << "new cost time:" << end1 - begin1 << std::endl;
+    std::cout << "object pool cost time:" << end2 - begin2 << std::endl;
 }

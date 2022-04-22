@@ -1,14 +1,28 @@
 #pragma once
+
+#ifdef _WIN64
+typedef unsigned long long PAGE_ID;
+#elif _WIN32
+typedef size_t PAGE_ID;
+#endif //定义32/64位OS下页号
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 // lib header file
 #include <iostream>
 #include <vector>
 #include <ctime>
 #include <cassert>
 #include <thread>
+#include <mutex>
+#include <algorithm>
 #define INIT_POOL_SIZE (1 << 13)
 #define INIT_POOL_PAGE 2
 #define MAX_SIZE 256*1024
-
+#define BUCKET_AMOUNT 208
+#define MAX_PAGE 129
+#define PAGE_SHIFT 13
 static void*& NextObj(void* obj) {
     return *(void**)obj;
 }
@@ -17,11 +31,16 @@ class FreeList {
 public:
     FreeList() : _free_list(nullptr) {}
 
-    // 头插
+    // 头插一个内存块
     void Push(void* obj) {
         assert(obj);
         NextObj(obj) = _free_list;
         _free_list = obj;
+    }
+    //头插一段内存块
+    void PushRange(void* start, void* end) {
+        NextObj(end) = _free_list;
+        _free_list = start;
     }
     // 头删
     void* Pop() {
@@ -33,8 +52,12 @@ public:
     bool Empty() {
         return _free_list == nullptr;
     }
-public:
+    size_t& MaxSize() {
+        return _max_size;
+    }
+private:
     void* _free_list;
+    size_t _max_size = 1;
 };
 
 
@@ -105,4 +128,79 @@ public:
             return -1;
         }
     }
+    // ThreadCache申请一批内存的数量规则
+    static size_t Batch(size_t size) {
+        size_t batch_size = MAX_SIZE / size;
+        if (batch_size >= 512) {
+            batch_size = 512;
+        }
+        else if (batch_size <= 2) {
+            batch_size = 2;
+        }
+        return batch_size;
+    }
+    static size_t PageBatch(size_t size) {
+        size_t batch_size = Batch(size);
+        size_t total_size = size * batch_size;
+        size_t page_size = (total_size >> 13);
+        if (page_size < 1) {
+            page_size = 1;
+        }
+        return page_size;
+    }
+};
+
+struct Span {
+    // 页号
+    PAGE_ID _page_id;
+    // 页的数量
+    size_t _page_amount;
+    // 页中每个内存块的大小
+    size_t _page_block_size;
+    // 已使用内存块数量
+    size_t _used_amount;
+    // 前后指针
+    Span* _prev = nullptr;
+    Span* _next = nullptr;
+    // 挂着切好内存块的自由链表
+    void* _free_list = nullptr;
+};
+
+class SpanList {
+public:
+    SpanList() : _head(nullptr) {}
+    Span* Begin() {
+        return _head->_next;
+    }
+    Span* End() {
+        return _head;
+    }
+    void Insert(Span* pos, Span* new_span) {
+        // 在pos前面插入new_span
+        Span* next = pos;
+        Span* prev = pos->_prev;
+        prev->_next = new_span;
+        new_span->_prev = prev;
+        new_span->_next = next;
+        next->_prev = new_span;
+    }
+    void PushFront(Span* new_span) {
+        Insert(Begin(), new_span);
+    }
+    void* Erase(Span* pos) {
+        Span* next = pos->_next;
+        Span* prev = pos->_prev;
+        prev->_next = next;
+        next->_prev = prev;
+    }
+    void* PopFront() {
+        assert(Begin() != nullptr);
+        return Erase(_head->_next);
+    }
+    bool Empty() {
+        return _head->_next == nullptr;
+    }
+public:
+    Span* _head;
+    std::mutex _mtx; // 桶锁
 };
