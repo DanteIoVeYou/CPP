@@ -21,8 +21,13 @@ void TLSTest() {
     t2.join();
 }
 
+
+void TestAlloc1() {
+    void* p1 = ccmalloc(6);
+}
 int main()
 {
-    TLSTest();
+    //TLSTest();
+    TestAlloc1();
     return 0;
 }

@@ -8,6 +8,7 @@ public:
 		return &_instance;
 	}
 	Span* NewSpan(size_t kpage);
+	std::mutex _mtx;
 private:
 	PageCache() {}
 	PageCache(const PageCache&) = delete;

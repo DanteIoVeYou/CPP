@@ -27,6 +27,21 @@ static void*& NextObj(void* obj) {
     return *(void**)obj;
 }
 
+
+// 以页为单位分配
+inline static void* SystemAlloc(size_t kpage)
+{
+#ifdef _WIN32
+    void* ptr = VirtualAlloc(0, (kpage << 13), MEM_COMMIT | MEM_RESERVE,
+        PAGE_READWRITE);
+#else
+    // linux下brk mmap等
+#endif
+    if (ptr == nullptr)
+        throw std::bad_alloc();
+    return ptr;
+}
+
 class FreeList {
 public:
     FreeList() : _free_list(nullptr) {}
@@ -168,7 +183,10 @@ struct Span {
 
 class SpanList {
 public:
-    SpanList() : _head(nullptr) {}
+    SpanList() : _head(new Span) {
+        _head->_next = _head;
+        _head->_prev = _head;
+    }
     Span* Begin() {
         return _head->_next;
     }
@@ -187,18 +205,19 @@ public:
     void PushFront(Span* new_span) {
         Insert(Begin(), new_span);
     }
-    void* Erase(Span* pos) {
+    Span* Erase(Span* pos) {
         Span* next = pos->_next;
         Span* prev = pos->_prev;
         prev->_next = next;
         next->_prev = prev;
+        return pos;
     }
-    void* PopFront() {
+    Span* PopFront() {
         assert(Begin() != nullptr);
         return Erase(_head->_next);
     }
     bool Empty() {
-        return _head->_next == nullptr;
+        return _head == _head->_next;
     }
 public:
     Span* _head;

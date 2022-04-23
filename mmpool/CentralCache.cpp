@@ -16,8 +16,12 @@ Span* CentralCache::GetOneSpan(SpanList& span_list, size_t size) {
 		}
 	}
 	// 向PageCache申请以页为单位的内存，并且进行切割
+	span_list._mtx.unlock(); // 暂时将桶锁解锁，以便有内存还回来的话，其他线程可以直接拿还回来的内存
+
+	PageCache::GetInstace()->_mtx.lock();
 	Span* new_span = PageCache::GetInstace()->NewSpan(SizeClass::PageBatch(size));
-	char* addr_begin = (char*)(new_span->_page_id << PAGE_SHIFT);
+	PageCache::GetInstace()->_mtx.unlock();
+	char* addr_begin = (char*)((new_span->_page_id) << PAGE_SHIFT);
 	char* addr_end = (char*)((new_span->_page_id + new_span->_page_amount) << PAGE_SHIFT);
 	new_span->_free_list = addr_begin;
 	void* tail = new_span->_free_list;
@@ -28,15 +32,15 @@ Span* CentralCache::GetOneSpan(SpanList& span_list, size_t size) {
 	}
 
 	span_list.PushFront(new_span);
+	span_list._mtx.lock();
 	return new_span;
 
 }
 void CentralCache::GiveToThreadCache(void*& start, void*& end, size_t batch_size, size_t size) {
 	size_t index = SizeClass::Index(size);
+	_span_lists[index]._mtx.lock();
 	Span* span = GetOneSpan(_span_lists[index], size);
 	// 至少有一个Span，也就意味着Span里面至少有一个内存块
-	_span_lists[index]._mtx.lock();
-
 	start = span->_free_list;
 	end = start;
 	size_t actual_batch_size = 1;

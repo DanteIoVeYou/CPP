@@ -5,7 +5,7 @@ void* ThreadCache::Allocate(size_t size) { // 给线程分配内存的接口
     size_t align_num = SizeClass::Align(size);
     size_t index = SizeClass::Index(size);
     if (_free_lists[index].Empty()) {
-        return FetchFromCentralCache(size, index); // 桶里没有内存，向上申请内存，再分配
+        return FetchFromCentralCache(align_num, index); // 桶里没有内存，向上申请内存，再分配
     } 
     else {
         return _free_lists[index].Pop();

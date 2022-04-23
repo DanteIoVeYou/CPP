@@ -11,19 +11,6 @@
 #include <windows.h>
 #endif
 
-// 以页为单位分配
-inline static void* SystemAlloc(size_t kpage)
-{
-#ifdef _WIN32
-    void* ptr = VirtualAlloc(0, (kpage << 13), MEM_COMMIT | MEM_RESERVE,
-        PAGE_READWRITE);
-#else
-    // linux下brk mmap等
-#endif
-    if (ptr == nullptr)
-        throw std::bad_alloc();
-    return ptr;
-}
 
 
 template<class T>
