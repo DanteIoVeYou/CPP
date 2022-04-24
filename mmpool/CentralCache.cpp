@@ -36,7 +36,7 @@ Span* CentralCache::GetOneSpan(SpanList& span_list, size_t size) {
 	return new_span;
 
 }
-void CentralCache::GiveToThreadCache(void*& start, void*& end, size_t batch_size, size_t size) {
+size_t CentralCache::GiveToThreadCache(void*& start, void*& end, size_t batch_size, size_t size) {
 	size_t index = SizeClass::Index(size);
 	_span_lists[index]._mtx.lock();
 	Span* span = GetOneSpan(_span_lists[index], size);
@@ -49,7 +49,18 @@ void CentralCache::GiveToThreadCache(void*& start, void*& end, size_t batch_size
 		end = NextObj(end);
 	}
 	span->_free_list = NextObj(end);
+	span->_used_amount += actual_batch_size;
 	NextObj(end) = nullptr;
 
 	_span_lists[index]._mtx.unlock();
+
+	return actual_batch_size;
+}
+
+void CentralCache::GetBackFromThreadCache(void* start, size_t size) {
+	// start 指向了一批连续的Pop出来的内存块
+	// 从ThreadCache回收num个size大小的内存块
+	size_t index = SizeClass::Index(size);
+	// 我们需要知道还给哪一个Span
+	Span* span = 
 }

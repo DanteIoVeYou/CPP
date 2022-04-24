@@ -12,6 +12,7 @@ typedef size_t PAGE_ID;
 // lib header file
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 #include <ctime>
 #include <cassert>
 #include <thread>
@@ -51,21 +52,38 @@ public:
         assert(obj);
         NextObj(obj) = _free_list;
         _free_list = obj;
+        _size++;
     }
     //头插一段内存块
-    void PushRange(void* start, void* end) {
+    void PushRange(void* start, void* end, size_t num) {
         NextObj(end) = _free_list;
         _free_list = start;
+        _size -= num;
     }
     // 头删
     void* Pop() {
         assert(_free_list != nullptr);
         void* obj = _free_list;
         _free_list = NextObj(obj);
+        _size--;
         return obj;
+    }
+    // 头删一段内存
+    void* PopRange(size_t num) {
+        void* start = nullptr;
+        void* end = nullptr;
+        start = _free_list;
+        for (size_t i = 0; i < num - 1; i++) {
+            end = NextObj(end);
+        }
+        NextObj(end) = nullptr;
+        return start;
     }
     bool Empty() {
         return _free_list == nullptr;
+    }
+    size_t Size() {
+        return _size;
     }
     size_t& MaxSize() {
         return _max_size;
@@ -73,6 +91,7 @@ public:
 private:
     void* _free_list;
     size_t _max_size = 1;
+    size_t _size = 0;
 };
 
 

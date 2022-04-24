@@ -23,6 +23,7 @@ void TLSTest() {
 
 
 void TestAlloc1() {
+
     void* p1 = ccmalloc(6);
 }
 int main()

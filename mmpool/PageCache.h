@@ -8,6 +8,7 @@ public:
 		return &_instance;
 	}
 	Span* NewSpan(size_t kpage);
+	Span* GetSpanViaAddress(void* start);
 	std::mutex _mtx;
 private:
 	PageCache() {}
@@ -15,4 +16,5 @@ private:
 	PageCache operator=(const PageCache&) = delete;
 	static PageCache _instance;
 	SpanList _span_lists[MAX_PAGE];
+	std::unordered_map<PAGE_ID, Span*> _pageid_span_map;
 };

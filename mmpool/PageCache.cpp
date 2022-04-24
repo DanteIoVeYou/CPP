@@ -5,7 +5,11 @@ Span* PageCache::NewSpan(size_t kpage) {
 	// 在PageCache获取kpage的Span
 	// 1. PageCache的kpage下标的桶里面有现成的Span，直接返回
 	if (!_span_lists[kpage].Empty()) {
-		return _span_lists[kpage].PopFront();
+		Span* kspan = _span_lists[kpage].PopFront();
+		for (size_t i = 0; i < kspan->_page_amount; i++) {
+			_pageid_span_map[kspan->_page_id + i] = kspan;
+		}
+		return kspan;
 	}
 	// 2. PageCache里kpage下标的桶里面没有现成的Span，往下面找
 	for (size_t i = kpage + 1; i < MAX_PAGE; i++) {
@@ -17,6 +21,9 @@ Span* PageCache::NewSpan(size_t kpage) {
 			kspan->_page_amount = kpage;
 			nspan->_page_id += kpage;
 			nspan->_page_amount -= kpage;
+			for (size_t i = 0; i < kspan->_page_amount; i++) {
+				_pageid_span_map[kspan->_page_id + i] = kspan;
+			}
 			_span_lists[nspan->_page_amount].PushFront(nspan);
 			return kspan;
 		}
@@ -30,4 +37,9 @@ Span* PageCache::NewSpan(size_t kpage) {
 	_span_lists[MAX_PAGE - 1].PushFront(kspan);
 
 	return NewSpan(kpage);
+}
+
+
+Span* PageCache::GetSpanViaAddress(void* start) {
+
 }
