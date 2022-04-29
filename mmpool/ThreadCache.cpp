@@ -24,7 +24,6 @@ void ThreadCache::Deallocate(void* ptr, size_t size) {
     if (_free_lists[index].Size() >= _free_lists[index].MaxSize()) {
         void* start = _free_lists[index].PopRange(_free_lists[index].MaxSize());
         CentralCache::GetInstance()->GetBackFromThreadCache(start, size);
-
     }
 } // 让线程还内存的接口
 

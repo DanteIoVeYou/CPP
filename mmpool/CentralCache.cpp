@@ -21,6 +21,9 @@ Span* CentralCache::GetOneSpan(SpanList& span_list, size_t size) {
 	PageCache::GetInstace()->_mtx.lock();
 	Span* new_span = PageCache::GetInstace()->NewSpan(SizeClass::PageBatch(size));
 	PageCache::GetInstace()->_mtx.unlock();
+
+	span_list._mtx.lock();
+
 	char* addr_begin = (char*)((new_span->_page_id) << PAGE_SHIFT);
 	char* addr_end = (char*)((new_span->_page_id + new_span->_page_amount) << PAGE_SHIFT);
 	new_span->_free_list = addr_begin;
@@ -30,9 +33,7 @@ Span* CentralCache::GetOneSpan(SpanList& span_list, size_t size) {
 		tail = NextObj(tail);
 		addr_begin += size;
 	}
-
 	span_list.PushFront(new_span);
-	span_list._mtx.lock();
 	return new_span;
 
 }
