@@ -21,6 +21,8 @@ Span* PageCache::NewSpan(size_t kpage) {
 			kspan->_page_amount = kpage;
 			nspan->_page_id += kpage;
 			nspan->_page_amount -= kpage;
+			_pageid_span_map[nspan->_page_id] = nspan;
+			_pageid_span_map[nspan->_page_id + nspan->_page_amount - 1] = nspan;
 			for (size_t i = 0; i < kspan->_page_amount; i++) {
 				_pageid_span_map[kspan->_page_id + i] = kspan;
 			}
@@ -41,5 +43,39 @@ Span* PageCache::NewSpan(size_t kpage) {
 
 
 Span* PageCache::GetSpanViaAddress(void* start) {
+	PAGE_ID page_id = ((PAGE_ID)start >> PAGE_SHIFT);
+	Span* span = _pageid_span_map[page_id];
+	return span;
+}
 
+void PageCache::GetPageFromCentralCache(Span* span) {
+	// 前后页合并
+	while (1) {
+		if (span->_page_id >= 0) {
+			PAGE_ID prev_id = span->_page_id - 1;
+			Span* prev_span;
+			if (_pageid_span_map.find(prev_id) != _pageid_span_map.end()) {
+				prev_span = _pageid_span_map[prev_id];
+				span->_page_id = prev_span->_page_id;
+				span->_page_amount += prev_span->_page_amount;
+			}
+			else {
+				// map中发现前面的页不是空闲页
+				break;
+			}
+		}
+	}
+	while (1) {
+		if (span->_page_id <= ) {
+			PAGE_ID next_id = span->_page_id + 1;
+			Span* next_span;
+			if (_pageid_span_map.find(next_id) != _pageid_span_map.end()) {
+				next_span = _pageid_span_map[next_id];
+				span->_page_amount += next_span->_page_amount;
+			}
+			else {
+				break;
+			}
+		}
+	}
 }

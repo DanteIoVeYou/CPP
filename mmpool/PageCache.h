@@ -9,6 +9,7 @@ public:
 	}
 	Span* NewSpan(size_t kpage);
 	Span* GetSpanViaAddress(void* start);
+	void GetPageFromCentralCache(Span* span);
 	std::mutex _mtx;
 private:
 	PageCache() {}

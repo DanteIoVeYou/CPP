@@ -63,5 +63,18 @@ void CentralCache::GetBackFromThreadCache(void* start, size_t size) {
 	// 从ThreadCache回收num个size大小的内存块
 	size_t index = SizeClass::Index(size);
 	// 我们需要知道还给哪一个Span
-	Span* span = 
+	while (start) {
+		Span* span = PageCache::GetInstace()->GetSpanViaAddress(start);
+		span->_used_amount--;
+		if (span->_used_amount == 0) {
+			// 一个Span已经全部还了回来，那么归还给PageCache
+			PageCache::GetInstace()->_mtx.lock();
+			span->_free_list = nullptr;
+			span->_next = nullptr;
+			span->_prev = nullptr;
+			PageCache::GetInstace()->GetPageFromCentralCache(span);
+			PageCache::GetInstace()->_mtx.unlock();
+		}
+		start = NextObj(start);
+	}
 }

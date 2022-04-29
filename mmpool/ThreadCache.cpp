@@ -22,7 +22,7 @@ void ThreadCache::Deallocate(void* ptr, size_t size) {
     // 判断需不需要将该桶的内存还给CentralCache
     // 如果当前桶的自由链表上挂的内存块数目大于等于自由链表的_max_size，就还给上一级，所以我们要给自由链表添加一个成员变量：_size，记录挂了多少内存块
     if (_free_lists[index].Size() >= _free_lists[index].MaxSize()) {
-        void* start = _free_lists[index].PopRange(_free_lists[index].MaxSize());
+        void* start = _free_lists[index].PopRange(_free_lists[index].Size());
         CentralCache::GetInstance()->GetBackFromThreadCache(start, size);
     }
 } // 让线程还内存的接口
