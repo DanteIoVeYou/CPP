@@ -18,12 +18,13 @@ Span* CentralCache::GetOneSpan(SpanList& span_list, size_t size) {
 	// 向PageCache申请以页为单位的内存，并且进行切割
 	span_list._mtx.unlock(); // 暂时将桶锁解锁，以便有内存还回来的话，其他线程可以直接拿还回来的内存
 
-	PageCache::GetInstace()->_mtx.lock();
-	Span* new_span = PageCache::GetInstace()->NewSpan(SizeClass::PageBatch(size));
-	PageCache::GetInstace()->_mtx.unlock();
+	PageCache::GetInstance()->_mtx.lock();
+	Span* new_span = PageCache::GetInstance()->NewSpan(SizeClass::PageBatch(size));
+	PageCache::GetInstance()->_mtx.unlock();
 
 	span_list._mtx.lock();
 
+	new_span->_page_block_size = size; // 该Span里面的内存块大小位size
 	char* addr_begin = (char*)((new_span->_page_id) << PAGE_SHIFT);
 	char* addr_end = (char*)((new_span->_page_id + new_span->_page_amount) << PAGE_SHIFT);
 	new_span->_free_list = addr_begin;
@@ -41,6 +42,7 @@ size_t CentralCache::GiveToThreadCache(void*& start, void*& end, size_t batch_si
 	size_t index = SizeClass::Index(size);
 	_span_lists[index]._mtx.lock();
 	Span* span = GetOneSpan(_span_lists[index], size);
+	span->_is_used = true;
 	// 至少有一个Span，也就意味着Span里面至少有一个内存块
 	start = span->_free_list;
 	end = start;
@@ -62,19 +64,30 @@ void CentralCache::GetBackFromThreadCache(void* start, size_t size) {
 	// start 指向了一批连续的Pop出来的内存块
 	// 从ThreadCache回收num个size大小的内存块
 	size_t index = SizeClass::Index(size);
-	// 我们需要知道还给哪一个Span
+	_span_lists[index]._mtx.lock();
+
+	// 把start对应的内存块还给指定的span
 	while (start) {
-		Span* span = PageCache::GetInstace()->GetSpanViaAddress(start);
+		void* next = NextObj(start);
+		Span* span = PageCache::GetInstance()->GetSpanViaAddress(start); // 我们需要知道还给哪一个Span
+		NextObj(start) = span->_free_list;
+		span->_free_list = start;
 		span->_used_amount--;
+
+		// 一个Span已经全部还了回来，那么归还给PageCache
 		if (span->_used_amount == 0) {
-			// 一个Span已经全部还了回来，那么归还给PageCache
-			PageCache::GetInstace()->_mtx.lock();
+			_span_lists[index].Erase(span);
+			_span_lists[index]._mtx.unlock();
 			span->_free_list = nullptr;
 			span->_next = nullptr;
 			span->_prev = nullptr;
-			PageCache::GetInstace()->GetPageFromCentralCache(span);
-			PageCache::GetInstace()->_mtx.unlock();
+			span->_is_used = false;
+			PageCache::GetInstance()->_mtx.lock();
+			PageCache::GetInstance()->GetPageFromCentralCache(span);
+			PageCache::GetInstance()->_mtx.unlock();
+			_span_lists[index]._mtx.lock();
 		}
-		start = NextObj(start);
+		start = next;
 	}
+	_span_lists[index]._mtx.unlock();
 }

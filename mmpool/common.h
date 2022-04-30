@@ -124,10 +124,8 @@ public:
         else if (size <= 1024 * 256) {
             return _Align(size, 8192);
         }
-        else {
-            // error
-            assert(false);
-            return -1;
+        else { // >256KB
+            return _Align(size, 8 * 1024);
         }
     }
     // 计算申请xx字节的内存需要去哪个下标的哈希桶里面取
@@ -186,13 +184,15 @@ public:
 
 struct Span {
     // 页号
-    PAGE_ID _page_id;
+    PAGE_ID _page_id = 0;
     // 页的数量
-    size_t _page_amount;
+    size_t _page_amount = 0;
     // 页中每个内存块的大小
-    size_t _page_block_size;
+    size_t _page_block_size = 0;
     // 已使用内存块数量
-    size_t _used_amount;
+    size_t _used_amount = 0;
+    // 是否在被使用
+    bool _is_used = false;
     // 前后指针
     Span* _prev = nullptr;
     Span* _next = nullptr;
