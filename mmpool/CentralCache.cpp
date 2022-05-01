@@ -34,6 +34,7 @@ Span* CentralCache::GetOneSpan(SpanList& span_list, size_t size) {
 		tail = NextObj(tail);
 		addr_begin += size;
 	}
+	NextObj(tail) = nullptr;
 	span_list.PushFront(new_span);
 	return new_span;
 
