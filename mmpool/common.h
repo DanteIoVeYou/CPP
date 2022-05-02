@@ -94,7 +94,6 @@ private:
     size_t _size = 0;
 };
 
-
 class SizeClass {
 public:
     // 计算内存对齐数

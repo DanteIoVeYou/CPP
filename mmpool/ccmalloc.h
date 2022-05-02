@@ -27,7 +27,6 @@ static void* ccmalloc(size_t size) {
             pThreadCache = new ThreadCache();
         }
     }
-
 };
 
 static void ccfree(void* ptr) {
